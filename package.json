@@ -1,0 +1,46 @@
+{
+  "name": "trendwalker",
+  "version": "0.0.1",
+  "description": "My first-class Nuxt.js project",
+  "author": "yh-coder",
+  "private": true,
+  "scripts": {
+    "lint": "eslint --ext .ts,.js,.vue --ignore-path .gitignore .",
+    "dev": "nuxt",
+    "build": "nuxt build && npm run arc",
+    "start": "nuxt start",
+    "generate": "nuxt generate",
+    "arc": "tar czvf build.tar.gz .nuxt",
+    "ext": "tar xzvf build.tar.gz"
+  },
+  "dependencies": {
+    "@nuxtjs/apollo": "^4.0.0-rc10",
+    "@nuxtjs/axios": "^5.3.6",
+    "@nuxtjs/dotenv": "^1.4.0",
+    "chart.js": "^2.8.0",
+    "d3": "^5.11.0",
+    "d3-cloud": "^1.2.5",
+    "d3.layout.cloud": "^1.2.0",
+    "graphql-tag": "^2.10.1",
+    "moment": "^2.24.0",
+    "nuxt": "^2.0.0",
+    "ts-node": "^8.3.0",
+    "vue-property-decorator": "^8.2.1"
+  },
+  "devDependencies": {
+    "@nuxt/typescript": "^2.8.1",
+    "@nuxtjs/eslint-config": "^1.0.1",
+    "@nuxtjs/eslint-module": "^0.2.1",
+    "@nuxtjs/vuetify": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^1.13.0",
+    "@typescript-eslint/parser": "^1.13.0",
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.15.1",
+    "eslint-config-prettier": "^4.1.0",
+    "eslint-plugin-nuxt": ">=0.4.2",
+    "eslint-plugin-prettier": "^3.0.1",
+    "nodemon": "^1.18.9",
+    "prettier": "^1.16.4",
+    "vuex-module-decorators": "^0.9.9"
+  }
+}

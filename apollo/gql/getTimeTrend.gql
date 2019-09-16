@@ -1,0 +1,12 @@
+# Write your query or mutation here
+query getTimeTrend($from: String!, $to: String!, $limit:Int) {
+  timeTrend(trend_time: { from: $from, to: $to }, limit: $limit) {
+    id
+    trend_word_id
+    trendWord {
+      trend_word
+    }
+    tweet_volume
+    trend_time
+  }
+}

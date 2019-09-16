@@ -1,0 +1,5 @@
+query getLastTrendTime {
+  tip(queryOrder: { column: "id", order: DESC }) {
+    trend_time
+  }
+}

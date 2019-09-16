@@ -1,0 +1,59 @@
+kind: pipeline
+name: trendwalker-frontend
+
+clone:
+  disable: true
+  
+trigger:
+  branch:
+  - master
+  event:
+  - push
+
+volumes:
+- name: docker_sock
+  host:
+    path: /var/run/docker.sock
+
+steps:
+- name: update
+  image: docker/compose:1.24.1
+  volumes:
+  - name: docker_sock
+    path: /var/run/docker.sock
+  environment:
+    GIT_HOST:
+      from_secret: GIT_HOST
+    GIT_USER:
+      from_secret: GIT_USER
+    GIT_PASS:
+      from_secret: GIT_PASS
+  commands:
+  - docker stop tw-fe_node_1
+  - PROJECT=tw-fe
+  - echo "cd /var/www/trendwalker" > update.sh
+  - echo "if [ -e $PROJECT ]; then" >> update.sh
+  - echo "  cd $PROJECT" >> update.sh
+  - echo "  git pull http://$GIT_USER:$GIT_PASS@$GIT_HOST/$DRONE_REPO" >> update.sh
+  - echo "else" >> update.sh
+  - echo "  git clone --depth 1 http://$GIT_USER:$GIT_PASS@$GIT_HOST/$DRONE_REPO $PROJECT" >> update.sh
+  - echo "fi" >> update.sh
+  - docker exec gogs_util_1 sh -c "$(cat update.sh)"
+
+- name: deploy
+  image: docker/compose:1.24.1
+  volumes:
+  - name: docker_sock
+    path: /var/run/docker.sock
+  commands:
+  # dotenv
+  - docker exec gogs_util_1 sh -c 'cp /var/dotenv/tw-fe.env /var/www/trendwalker/tw-fe/.env.prod'
+  # deploy ビルドなし
+  - echo 'cd /var/www/trendwalker/tw-fe' > deploy.sh
+  #- echo 'npm install --production' >> deploy.sh
+  - echo 'npm install' >> deploy.sh
+  - echo 'npm run ext' >> deploy.sh
+  - echo 'pm2 start npm -- start' >> deploy.sh
+  - docker restart tw-fe_node_1
+  - docker exec -u root tw-fe_node_1 sh -c 'npm install pm2 -g'
+  - docker exec -u node tw-fe_node_1 sh -c "$(cat deploy.sh)"
