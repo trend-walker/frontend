@@ -132,7 +132,7 @@ export default class TrendWordDateBody extends Vue {
       align: 'right'
     },
     {
-      text: '最新のトレンド情報',
+      text: '当日のトレンド情報',
       value: 'action',
       align: 'center'
     }

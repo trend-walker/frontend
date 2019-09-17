@@ -32,27 +32,23 @@
         </v-flex>
         <v-row align="start" justify="center" class="grey lighten-5 px-md-12">
           <v-col cols="12">
-            <v-row
-              v-if="wordCloudFile"
-              id="word-cloud"
-              align="start"
-              justify="center"
-            >
+            <v-row id="word-cloud" align="start" justify="center">
+              <div v-if="wordCloudFile == null" class="text-center">
+                <v-progress-circular
+                  :size="70"
+                  color="primary"
+                  indeterminate
+                ></v-progress-circular>
+              </div>
               <v-img
-                :src="wordcloud"
+                v-else
+                :src="wordCloudFile"
                 alt="word-cloud"
                 contain
                 max-width="1200"
                 aspect-ratio="2"
               ></v-img>
             </v-row>
-            <div v-else class="text-center">
-              <v-progress-circular
-                :size="70"
-                color="primary"
-                indeterminate
-              ></v-progress-circular>
-            </div>
             <span id="word-cloud-temp"></span>
           </v-col>
         </v-row>
@@ -87,7 +83,7 @@
         </v-flex>
         <v-row align="start" justify="center" class="grey lighten-5 px-md-12">
           <v-col cols="12">
-            <v-row v-if="wordCloudFile" align="start" justify="center">
+            <v-row align="start" justify="center">
               <div
                 v-for="tweets in recomendedTweets"
                 :id="tweets.id_str"
@@ -95,7 +91,7 @@
                 class="px-3"
               >
                 <v-progress-circular
-                  v-if="!tweets.loaded"
+                  v-if="tweets.loaded != true"
                   :size="70"
                   color="primary"
                   indeterminate
@@ -142,8 +138,7 @@ moment.locale('ja')
     }
     return {
       date: res.data.date,
-      trendWord: res.data.trend_word,
-      wordCloudFile: res.data.word_cloud
+      trendWord: res.data.trend_word
     }
   },
   head() {
@@ -163,7 +158,7 @@ moment.locale('ja')
 })
 export default class DailyTrendWord extends Vue {
   trendWord: string = ''
-  wordCloudFile: boolean = false
+  wordCloudFile: string | null = null
   breadcrumbs: any = [
     {
       text: 'トップ',
@@ -173,7 +168,7 @@ export default class DailyTrendWord extends Vue {
   ]
   recomendedTweets: any = []
 
-  async mounted() {
+  mounted() {
     // パンくず
     this.breadcrumbs.push({
       text: 'デイリートレンド',
@@ -192,56 +187,62 @@ export default class DailyTrendWord extends Vue {
       to: `/trendword/${this.$route.params.trendWordId}`
     })
 
-    // ワードクラウド
-    if (!this.wordCloudFile) {
-      const res: any = await axios.get(
-        `${process.env.API_HOST}/api/analyze_daily_tweets/${this.$route.params.date}/${this.$route.params.trendWordId}`
-      )
-      if (res.data.words.length > 0) {
-        this.genWordCloud(res.data.words.slice(0, 200))
-      }
-    }
+    this.createWordCloud()
 
-    // 人気のトレンド
+    this.createVolumeGraph()
+
+    this.createRecomendedTweets()
+  }
+
+  // ワードクラウド
+  async createWordCloud() {
+    const res: any = await axios.get(
+      `${process.env.API_HOST}/api/analyze_daily_tweets/${this.$route.params.date}/${this.$route.params.trendWordId}`
+    )
+    if (res.data.words.length > 0) {
+      this.genWordCloud(res.data.words.slice(0, 200))
+    }
+  }
+
+  // ツイート数グラフ
+  async createVolumeGraph() {
+    await this.$nextTick()
+    const res = await axios.get(
+      `${process.env.API_HOST}/api/tweet_volume/${this.$route.params.date}/${this.$route.params.trendWordId}`
+    )
+    const canvas: any = document.getElementById('chart')
+    const context = canvas.getContext('2d')
+    const chart = new Chart(context, {
+      type: 'bar',
+      data: {
+        labels: Array.from(new Array(24)).map((v, i) => `${i}時`),
+        datasets: [
+          {
+            label: 'ツイート数',
+            data: res.data.reduce((a, e, i) => {
+              a[parseInt(e.trend_hour.split(' ')[1])] = e.tweet_volume
+              return a
+            }, Array.from(new Array(24)).fill(0)),
+            borderColor: 'rgba(54,164,235,0.8)',
+            backgroundColor: 'rgba(54,164,235,0.5)'
+          }
+        ]
+      },
+      options: {
+        responsive: true
+      }
+    })
+  }
+
+  // 人気のツイート
+  async createRecomendedTweets() {
     const tw: any = await axios.get(
       `${process.env.API_HOST}/api/get_tweets_list/${this.$route.params.date}/${this.$route.params.trendWordId}`
     )
     this.recomendedTweets = tw.data.tweets
       .sort((a, b) => b.favorite + b.retweet - a.favorite - a.retweet)
       .slice(0, 6)
-
-    this.$nextTick(this.moundNextTick)
-  }
-
-  moundNextTick() {
-    axios
-      .get(
-        `${process.env.API_HOST}/api/tweet_volume/${this.$route.params.date}/${this.$route.params.trendWordId}`
-      )
-      .then((res) => {
-        const canvas: any = document.getElementById('chart')
-        const context = canvas.getContext('2d')
-        const chart = new Chart(context, {
-          type: 'bar',
-          data: {
-            labels: Array.from(new Array(24)).map((v, i) => `${i}時`),
-            datasets: [
-              {
-                label: 'ツイート数',
-                data: res.data.reduce((a, e, i) => {
-                  a[parseInt(e.trend_hour.split(' ')[1])] = e.tweet_volume
-                  return a
-                }, Array.from(new Array(24)).fill(0)),
-                borderColor: 'rgba(54,164,235,0.8)',
-                backgroundColor: 'rgba(54,164,235,0.5)'
-              }
-            ]
-          },
-          options: {
-            responsive: true
-          }
-        })
-      })
+    await this.$nextTick()
 
     const widgets = (window as any).twttr.widgets
     this.recomendedTweets.forEach((e, i) => {
@@ -268,10 +269,6 @@ export default class DailyTrendWord extends Vue {
 
   get dateJp() {
     return moment(this.$route.params.date).format('YYYY年MM月DD日 (ddd)')
-  }
-
-  get wordcloud() {
-    return `${process.env.API_HOST}/storage/word-cloud/${this.$route.params.date}/${this.$route.params.trendWordId}.svg`
   }
 
   genWordCloud(data: any) {
@@ -321,16 +318,22 @@ export default class DailyTrendWord extends Vue {
 
         const e = document.querySelector('#word-cloud-temp')
         if (e) {
-          axios
-            .post(`${process.env.API_HOST}/api/gen_svg`, {
-              date: this.$route.params.date,
-              trendWordId: this.$route.params.trendWordId,
-              svg: e.innerHTML
-            })
-            .then(() => {
-              this.wordCloudFile = true
-              e.innerHTML = ''
-            })
+          const blob = new Blob(
+            [
+              e.innerHTML.replace(
+                /<svg.*?>/,
+                [
+                  '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
+                  '<svg width="960" height="480" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+                ].join('')
+              )
+            ],
+            {
+              type: 'image/svg+xml'
+            }
+          )
+          this.wordCloudFile = window.URL.createObjectURL(blob)
+          e.innerHTML = ''
         }
       })
 

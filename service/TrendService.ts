@@ -109,11 +109,11 @@ export class TrendService {
           from: date
             .clone()
             .subtract(5, 'm')
-            .format('YYYY-MM-DD kk:mm:ss'),
+            .format('YYYY-MM-DD HH:mm:ss'),
           to: date
             .clone()
             .add(5, 'm')
-            .format('YYYY-MM-DD kk:mm:ss'),
+            .format('YYYY-MM-DD HH:mm:ss'),
           limit: 10
         }
       })
@@ -124,11 +124,11 @@ export class TrendService {
           e.tweet_volume = undefined
           list.push(new Trend(e))
         })
-        func({ time: date.format('YYYY-MM-DD kk:mm:ss'), trends: list })
+        func({ time: date.format('YYYY-MM-DD HH:mm:ss'), trends: list })
       })
       .catch((e) => {
         func({
-          time: date.format('YYYY-MM-DD kk:mm:ss'),
+          time: date.format('YYYY-MM-DD HH:mm:ss'),
           trends: [new Trend({ trendWord: { trend_word: e.message } })]
         })
       })
