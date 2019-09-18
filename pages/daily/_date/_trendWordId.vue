@@ -59,7 +59,7 @@
               ツイートグラフ
             </h2>
             <span class="subheading">
-              過去24時間のツイート件数を時間ごとに並べたグラフ
+              {{ dateJp }}の「{{ trendWord }}」関連ツイート件数遷移グラフ
             </span>
           </div>
         </v-flex>
@@ -213,23 +213,49 @@ export default class DailyTrendWord extends Vue {
     const canvas: any = document.getElementById('chart')
     const context = canvas.getContext('2d')
     const chart = new Chart(context, {
-      type: 'bar',
+      type: 'line',
       data: {
         labels: Array.from(new Array(24)).map((v, i) => `${i}時`),
         datasets: [
           {
-            label: 'ツイート数',
-            data: res.data.reduce((a, e, i) => {
+            label: 'ツイート件数',
+            lineTension: 0,
+            pointRadius: 8,
+            pointHoverRadius: 12,
+            data: res.data.reduce((a, e) => {
               a[parseInt(e.trend_hour.split(' ')[1])] = e.tweet_volume
               return a
-            }, Array.from(new Array(24)).fill(0)),
+            }, Array.from(new Array(24)).fill(null)),
             borderColor: 'rgba(54,164,235,0.8)',
             backgroundColor: 'rgba(54,164,235,0.5)'
           }
         ]
       },
       options: {
-        responsive: true
+        responsive: true,
+        scales: {
+          xAxes: [
+            {
+              scaleLabel: {
+                display: true,
+                labelString: `「${this.trendWord}」${this.dateJp}`,
+                fontSize: 14
+              }
+            }
+          ],
+          yAxes: [
+            {
+              scaleLabel: {
+                display: true,
+                labelString: '過去24時間のツイート件数',
+                fontSize: 14
+              },
+              ticks: {
+                beginAtZero: true
+              }
+            }
+          ]
+        }
       }
     })
   }
@@ -322,10 +348,7 @@ export default class DailyTrendWord extends Vue {
             [
               e.innerHTML.replace(
                 /<svg.*?>/,
-                [
-                  '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
-                  '<svg width="960" height="480" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
-                ].join('')
+                '<svg width="960" height="480" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
               )
             ],
             {
@@ -338,22 +361,6 @@ export default class DailyTrendWord extends Vue {
       })
 
     layout.start()
-  }
-
-  // 検証用
-  post() {
-    const e = document.querySelector('#word-cloud')
-    if (e) {
-      axios
-        .post(`${process.env.API_HOST}/api/gen_svg`, {
-          date: this.$route.params.date,
-          trendWordId: this.$route.params.trendWordId,
-          svg: e.innerHTML
-        })
-        .then((e) => {
-          console.log(e)
-        })
-    }
   }
 }
 </script>
