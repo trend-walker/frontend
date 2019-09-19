@@ -130,7 +130,7 @@
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator'
 import moment from 'moment'
-import { datepickerModule, trendwordModule } from '@/store'
+import { dailyTrendsModule, trendwordModule } from '@/store'
 import { TrendService } from '@/service/TrendService'
 import TopList from '@/components/TopList.vue'
 import getLastTrendTime from '@/apollo/gql/getLastTrendTime.gql'
@@ -169,7 +169,7 @@ export default class TrendsBody extends Vue {
   }
 
   datepicker() {
-    datepickerModule.openDialog()
+    dailyTrendsModule.openDialog()
   }
   trendword() {
     trendwordModule.openDialog()

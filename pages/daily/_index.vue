@@ -36,9 +36,16 @@
                 <v-card width="100%">
                   <v-data-table
                     :headers="headers"
-                    :items="trendwords.trends"
-                    :items-per-page="15"
+                    :items="store.list"
+                    :items-per-page="store.table.itemPerPage"
                     class="elevation-1"
+                    :class="{ loaded: store.loaded }"
+                    :loading="!store.loaded"
+                    :page="store.table.page"
+                    loading-text="読み込み中..."
+                    no-data-text="データが見つかりませんでした。"
+                    @update:page="setPage"
+                    @update:items-per-page="setItemsPerPage"
                   >
                     <template v-slot:item.trend_word="{ item }">
                       <router-link :to="trendwordDate(item)" small class="mr-2">
@@ -69,7 +76,8 @@ import axios from 'axios'
 import TopList from '@/components/TopList.vue'
 import { TrendService, ITrends } from '@/service/TrendService'
 import { genMetaParam } from '@/utils/ssr-suport'
-import { datepickerModule } from '@/store'
+import { dailyTrendsModule } from '@/store'
+import { ITable } from '@/store/dailyTrends'
 
 moment.locale('ja')
 
@@ -115,16 +123,14 @@ export default class DailyTrend extends Vue {
       sortable: false
     }
   ]
-  pagenation = {
-    total: 0,
-    page: 1,
-    length: 0,
-    result: []
+
+  get store() {
+    return dailyTrendsModule
   }
 
   breadcrumbLink(event?: string) {
     if (event === 'datepicker') {
-      datepickerModule.openDialog(this.$route.params.index)
+      dailyTrendsModule.openDialog(this.$route.params.index)
     }
   }
 
@@ -140,7 +146,15 @@ export default class DailyTrend extends Vue {
     return `/daily/${this.$route.params.index}/${item.trend_word_id}`
   }
 
-  async mounted() {
+  setPage(value) {
+    dailyTrendsModule.setPage(value)
+  }
+
+  setItemsPerPage(value) {
+    dailyTrendsModule.setItemsPerPage(value)
+  }
+
+  mounted() {
     const date = this.$route.params.index
     this.breadcrumbs.push({
       text: 'デイリートレンド',
@@ -153,7 +167,8 @@ export default class DailyTrend extends Vue {
       disabled: true,
       to: `/daily/${date}`
     })
-    this.trendwords = await this.service.getDailyTrends(moment(date), 1000)
+
+    dailyTrendsModule.findDate({ date: moment(date), limit: 1000 })
   }
 }
 </script>

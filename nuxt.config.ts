@@ -51,10 +51,6 @@ const config: NuxtConfiguration = {
     link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
     script: [
       {
-        src: 'https://platform.twitter.com/widgets.js',
-        type: 'text/javascript'
-      },
-      {
         src:
           'https://polyfill.io/v3/polyfill.min.js?features=Array.from%2CSymbol%2CPromise%2CMath.cbrt%2CArray.prototype.values%2CObject.values',
         type: 'text/javascript'

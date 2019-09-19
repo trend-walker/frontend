@@ -72,7 +72,7 @@
 
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator'
-import { datepickerModule, trendwordModule } from '@/store'
+import { dailyTrendsModule, trendwordModule } from '@/store'
 import DatepickerDialog from '@/components/DatepickerDialog.vue'
 import TrendwordDialog from '@/components/TrendwordDialog.vue'
 
@@ -113,7 +113,7 @@ export default class Top extends Vue {
   menuEvent(eventName) {
     this.primaryDrawer.model = false
     if (eventName === 'datepicker') {
-      datepickerModule.openDialog()
+      dailyTrendsModule.openDialog()
     }
     if (eventName === 'trendword') {
       trendwordModule.openDialog()
@@ -121,7 +121,7 @@ export default class Top extends Vue {
   }
   moveDate(date) {
     this.$router.push(`/daily/${date}`)
-    datepickerModule.closeDialog()
+    dailyTrendsModule.closeDialog()
   }
   searchWord(data: { word: string }) {
     trendwordModule.setWord(data.word)
@@ -129,7 +129,7 @@ export default class Top extends Vue {
     this.$router.push(`/trendword`)
   }
   closeDialog() {
-    datepickerModule.closeDialog()
+    dailyTrendsModule.closeDialog()
     trendwordModule.closeDialog()
   }
 }

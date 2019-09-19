@@ -75,7 +75,6 @@ import moment from 'moment'
 import axios from 'axios'
 import * as d3 from 'd3'
 import * as cloud from 'd3-cloud'
-import { datepickerModule } from '@/store'
 import { genMetaParam } from '@/utils/ssr-suport'
 
 moment.locale('ja')

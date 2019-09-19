@@ -1,7 +1,7 @@
 <template>
   <v-row justify="center">
     <v-dialog
-      v-model="store.active"
+      v-model="active"
       max-width="640"
       @click:outside="$emit('date-cancel')"
     >
@@ -16,7 +16,7 @@
         <v-date-picker
           v-model="date"
           full-width
-          :show-current="store.date"
+          :show-current="date"
           :landscape="$vuetify.breakpoint.smAndUp"
           :day-format="dayFormt"
           locale="ja"
@@ -37,23 +37,24 @@
 
 <script lang="ts">
 import { Component, Vue, Prop, Watch } from 'vue-property-decorator'
-import { datepickerModule as store } from '@/store'
+import { dailyTrendsModule as store } from '@/store'
 
 @Component
 export default class DatepickerDialog extends Vue {
-  date: String = ''
+  get active() {
+    return store.dialog
+  }
 
-  get store() {
-    return store
+  get date() {
+    return store.dialogDate
+  }
+
+  set date(value) {
+    store.setDialogDate(value)
   }
 
   dayFormt(date) {
     return date.split('-')[2]
-  }
-
-  @Watch('store.date')
-  onChangeStoreDate(value) {
-    this.date = value
   }
 }
 </script>

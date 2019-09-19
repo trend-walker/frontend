@@ -118,7 +118,7 @@ import axios from 'axios'
 import { Chart } from 'chart.js'
 import * as d3 from 'd3'
 import * as cloud from 'd3-cloud'
-import { datepickerModule } from '@/store'
+import { dailyTrendsModule } from '@/store'
 import { genMetaParam } from '@/utils/ssr-suport'
 
 moment.locale('ja')
@@ -152,14 +152,25 @@ moment.locale('ja')
         url: `https://trendwalker.yhcoder.ml/daily/${date}/${trendWordId}`,
         title: `Trendwalker 「${com.trendWord}」`,
         description: `${dateJp} のトレンド「${com.trendWord}」についての情報。`
-      })
+      }),
+      script: [
+        {
+          src: 'https://platform.twitter.com/widgets.js',
+          type: 'text/javascript'
+        }
+      ]
     }
   }
 })
 export default class DailyTrendWord extends Vue {
   trendWord: string = ''
   wordCloudFile: string | null = null
-  breadcrumbs: any = [
+  breadcrumbs: {
+    text: string
+    disabled: boolean
+    to: string
+    event?: string
+  }[] = [
     {
       text: 'トップ',
       disabled: false,
@@ -167,8 +178,9 @@ export default class DailyTrendWord extends Vue {
     }
   ]
   recomendedTweets: any = []
+  chart?: Chart = null
 
-  mounted() {
+  async mounted() {
     // パンくず
     this.breadcrumbs.push({
       text: 'デイリートレンド',
@@ -187,55 +199,23 @@ export default class DailyTrendWord extends Vue {
       to: `/trendword/${this.$route.params.trendWordId}`
     })
 
-    this.createWordCloud()
-
-    this.createVolumeGraph()
-
-    this.createRecomendedTweets()
-  }
-
-  // ワードクラウド
-  async createWordCloud() {
-    const res: any = await axios.get(
-      `${process.env.API_HOST}/api/analyze_daily_tweets/${this.$route.params.date}/${this.$route.params.trendWordId}`
-    )
-    if (res.data.words.length > 0) {
-      this.genWordCloud(res.data.words.slice(0, 200))
-    }
-  }
-
-  // ツイート数グラフ
-  async createVolumeGraph() {
     await this.$nextTick()
-    const res = await axios.get(
-      `${process.env.API_HOST}/api/tweet_volume/${this.$route.params.date}/${this.$route.params.trendWordId}`
-    )
     const canvas: any = document.getElementById('chart')
     const context = canvas.getContext('2d')
-    const chart = new Chart(context, {
-      type: 'line',
+    this.chart = new Chart(context, {
+      type: 'bar',
       data: {
-        labels: Array.from(new Array(24)).map((v, i) => `${i}時`),
-        datasets: [
-          {
-            label: 'ツイート件数',
-            lineTension: 0,
-            pointRadius: 8,
-            pointHoverRadius: 12,
-            data: res.data.reduce((a, e) => {
-              a[parseInt(e.trend_hour.split(' ')[1])] = e.tweet_volume
-              return a
-            }, Array.from(new Array(24)).fill(null)),
-            borderColor: 'rgba(54,164,235,0.8)',
-            backgroundColor: 'rgba(54,164,235,0.5)'
-          }
-        ]
+        labels: Array(24)
+          .fill(0)
+          .map((v, i) => `${i}時`),
+        datasets: []
       },
       options: {
         responsive: true,
         scales: {
           xAxes: [
             {
+              barPercentage: 0.5,
               scaleLabel: {
                 display: true,
                 labelString: `「${this.trendWord}」${this.dateJp}`,
@@ -245,6 +225,7 @@ export default class DailyTrendWord extends Vue {
           ],
           yAxes: [
             {
+              id: 'volume',
               scaleLabel: {
                 display: true,
                 labelString: '過去24時間のツイート件数',
@@ -253,24 +234,92 @@ export default class DailyTrendWord extends Vue {
               ticks: {
                 beginAtZero: true
               }
+            },
+            {
+              id: 'id-count',
+              position: 'right',
+              scaleLabel: {
+                display: true,
+                labelString: '観測件数',
+                fontSize: 14
+              },
+              ticks: {
+                beginAtZero: true
+              },
+              gridLines: {
+                drawOnChartArea: false
+              }
             }
           ]
         }
       }
     })
+
+    this.getAnalyze()
+
+    this.createVolumeGraph()
+  }
+
+  async getAnalyze() {
+    const res = await axios.get(
+      `${process.env.API_HOST}/api/analyze_daily_tweets/${this.$route.params.date}/${this.$route.params.trendWordId}`
+    )
+    // ワードクラウド
+    this.generateWordCloud(res.data.analyze.word_weights)
+    // 人気ツイート
+    this.createRecomendedTweets(res.data.analyze.id_list)
+    // 観測ツイート件数
+    if (this.chart) {
+      this.chart.data.datasets.push({
+        label: '観測件数',
+        yAxisID: 'id-count',
+        type: 'bar',
+        data: res.data.analyze.value_per_hour,
+        borderColor: 'rgba(235,164,54,0.8)',
+        backgroundColor: 'rgba(235,164,54,0.5)'
+      })
+      this.chart.update()
+    }
+  }
+
+  // ツイート数グラフ
+  async createVolumeGraph() {
+    if (this.chart) {
+      const res = await axios.get(
+        `${process.env.API_HOST}/api/tweet_volume/${this.$route.params.date}/${this.$route.params.trendWordId}`
+      )
+
+      this.chart.data.datasets.push({
+        label: 'ツイート件数',
+        yAxisID: 'volume',
+        type: 'line',
+        lineTension: 0,
+        pointRadius: 8,
+        pointHoverRadius: 12,
+        data: res.data.reduce((a, e) => {
+          a[parseInt(e.trend_hour.split(' ')[1])] = e.tweet_volume
+          return a
+        }, Array(24).fill(null)),
+        borderColor: 'rgba(54,164,235,0.8)',
+        backgroundColor: 'rgba(54,164,235,0.5)'
+      })
+    }
+    this.chart.update()
   }
 
   // 人気のツイート
-  async createRecomendedTweets() {
-    const tw: any = await axios.get(
-      `${process.env.API_HOST}/api/get_tweets_list/${this.$route.params.date}/${this.$route.params.trendWordId}`
-    )
-    this.recomendedTweets = tw.data.tweets
+  async createRecomendedTweets(tweets) {
+    const widgets = ((e) =>
+      e.twttr && e.twttr.widgets ? e.twttr.widgets : undefined)(window as any)
+    if (widgets === undefined) {
+      return
+    }
+
+    this.recomendedTweets = tweets
       .sort((a, b) => b.favorite + b.retweet - a.favorite - a.retweet)
       .slice(0, 6)
     await this.$nextTick()
 
-    const widgets = (window as any).twttr.widgets
     this.recomendedTweets.forEach((e, i) => {
       const p = document.getElementById(e.id_str)
       const res = widgets
@@ -289,7 +338,7 @@ export default class DailyTrendWord extends Vue {
 
   breadcrumbLink(event?: string) {
     if (event === 'datepicker') {
-      datepickerModule.openDialog(this.$route.params.date)
+      dailyTrendsModule.openDialog(this.$route.params.date)
     }
   }
 
@@ -297,7 +346,8 @@ export default class DailyTrendWord extends Vue {
     return moment(this.$route.params.date).format('YYYY年MM月DD日 (ddd)')
   }
 
-  genWordCloud(data: any) {
+  generateWordCloud(data) {
+    data = data.slice(0, 200)
     const rate = 24 / data[0].size
     const layout = cloud()
       .size([960, 480])

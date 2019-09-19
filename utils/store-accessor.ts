@@ -2,25 +2,25 @@ import { Store } from 'vuex'
 import { getModule } from 'vuex-module-decorators'
 import TrendsStore from '@/store/trends'
 import TodosStore from '@/store/todos'
-import DatepickerStore from '@/store/datepicker'
 import TrendwordStore from '@/store/trendword'
+import DailyTrendsStore from '@/store/dailyTrends'
 
 let trendsModule: TrendsStore
 let todosModule: TodosStore
-let datepickerModule: DatepickerStore
 let trendwordModule: TrendwordStore
+let dailyTrendsModule: DailyTrendsStore
 
 function initialiseStores(store: Store<any>): void {
   trendsModule = getModule(TrendsStore, store)
   todosModule = getModule(TodosStore, store)
-  datepickerModule = getModule(DatepickerStore, store)
   trendwordModule = getModule(TrendwordStore, store)
+  dailyTrendsModule = getModule(DailyTrendsStore, store)
 }
 
 export {
   initialiseStores,
   trendsModule,
   todosModule,
-  datepickerModule,
-  trendwordModule
+  trendwordModule,
+  dailyTrendsModule
 }
