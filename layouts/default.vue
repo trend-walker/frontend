@@ -34,6 +34,9 @@
           </v-list-item-content>
         </v-list-item>
       </v-list>
+      <v-footer app>
+        <v-col class="text-center" cols="12">&copy;yhcoder </v-col>
+      </v-footer>
     </v-navigation-drawer>
     <v-btn
       v-if="primaryDrawer.type !== 'permanent'"
@@ -63,10 +66,6 @@
       @trendword-close="closeDialog"
     >
     </TrendwordDialog>
-
-    <v-footer :inset="footer.inset" app>
-      <v-col class="text-center" cols="12">&copy;yhcoder </v-col>
-    </v-footer>
   </v-app>
 </template>
 
@@ -90,24 +89,31 @@ export default class Top extends Vue {
     floating: false,
     mini: false
   }
-  footer = {
-    inset: true
-  }
   items = [
     {
-      icon: 'mdi-home',
       title: 'トップページ',
+      icon: 'mdi-home',
       to: '/'
     },
     {
-      icon: 'mdi-calendar-search',
+      title: '最新のトレンド',
+      icon: 'mdi-calendar-clock',
+      to: '/latest'
+    },
+    {
       title: 'デイリートレンド',
+      icon: 'mdi-calendar-search',
       event: 'datepicker'
     },
     {
-      icon: 'mdi-database-search',
       title: 'トレンドワード',
+      icon: 'mdi-database-search',
       event: 'trendword'
+    },
+    {
+      title: 'About',
+      icon: 'mdi-information-outline',
+      to: '/about'
     }
   ]
   menuEvent(eventName) {

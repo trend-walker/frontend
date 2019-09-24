@@ -34,11 +34,34 @@
           <v-col cols="12">
             <v-row id="word-cloud" align="start" justify="center">
               <div v-if="wordCloudFile == null" class="text-center">
-                <v-progress-circular
-                  :size="70"
-                  color="primary"
-                  indeterminate
-                ></v-progress-circular>
+                <svg
+                  width="1200"
+                  height="600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  xmlns:xlink="http://www.w3.org/1999/xlink"
+                  viewBox="0 0 960 480"
+                  style="width: 100%; height: 100%"
+                >
+                  <rect
+                    x="0"
+                    y="0"
+                    width="960"
+                    height="480"
+                    fill="rgba(211, 208, 201, 0.25)"
+                  />
+                  <rect class="progress" x="0" y="0%" height="4" />
+                  <text
+                    class="loading"
+                    font-size="82"
+                    x="50%"
+                    y="50%"
+                    text-anchor="middle"
+                    dominant-baseline="central"
+                    fill="rgb(211, 208, 201"
+                  >
+                    loading...
+                  </text>
+                </svg>
               </div>
               <v-img
                 v-else
@@ -83,7 +106,18 @@
         </v-flex>
         <v-row align="start" justify="center" class="grey lighten-5 px-md-12">
           <v-col cols="12">
-            <v-row align="start" justify="center">
+            <v-row
+              v-if="recomendedTweets.length == 0"
+              align="start"
+              justify="center"
+            >
+              <v-progress-circular
+                :size="70"
+                color="primary"
+                indeterminate
+              ></v-progress-circular>
+            </v-row>
+            <v-row v-else align="start" justify="center">
               <div
                 v-for="tweets in recomendedTweets"
                 :id="tweets.id_str"
@@ -108,6 +142,38 @@
 <style>
 #word-cloud-temp {
   opacity: 0;
+}
+.loading {
+  animation-name: loading;
+  animation-direction: alternate-reverse;
+  animation-duration: 1s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes loading {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+
+.progress {
+  animation-name: progress;
+  animation-direction: normal;
+  animation-duration: 10s;
+  animation-timing-function: cubic-bezier(0, 0, 0, 1);
+}
+@keyframes progress {
+  0% {
+    fill: rgb(75, 87, 255);
+    width: 0%;
+  }
+  100% {
+    fill: rgb(203, 215, 221);
+    width: 100%;
+  }
 }
 </style>
 
@@ -228,11 +294,12 @@ export default class DailyTrendWord extends Vue {
               id: 'volume',
               scaleLabel: {
                 display: true,
-                labelString: '過去24時間のツイート件数',
-                fontSize: 14
+                fontSize: 14,
+                labelString: '過去24時間のツイート件数'
               },
               ticks: {
-                beginAtZero: true
+                beginAtZero: true,
+                fontColor: 'rgba(54,164,235)'
               }
             },
             {
@@ -240,11 +307,12 @@ export default class DailyTrendWord extends Vue {
               position: 'right',
               scaleLabel: {
                 display: true,
-                labelString: '観測件数',
-                fontSize: 14
+                fontSize: 14,
+                labelString: '観測件数'
               },
               ticks: {
-                beginAtZero: true
+                beginAtZero: true,
+                fontColor: 'rgba(235,164,54)'
               },
               gridLines: {
                 drawOnChartArea: false
@@ -264,19 +332,20 @@ export default class DailyTrendWord extends Vue {
     const res = await axios.get(
       `${process.env.API_HOST}/api/analyze_daily_tweets/${this.$route.params.date}/${this.$route.params.trendWordId}`
     )
+    // await new Promise((resolve) => setTimeout(resolve, 9000))
     // ワードクラウド
     this.generateWordCloud(res.data.analyze.word_weights)
     // 人気ツイート
     this.createRecomendedTweets(res.data.analyze.id_list)
     // 観測ツイート件数
     if (this.chart) {
-      this.chart.data.datasets.push({
+      this.chart.data.datasets.unshift({
         label: '観測件数',
         yAxisID: 'id-count',
         type: 'bar',
-        data: res.data.analyze.value_per_hour,
         borderColor: 'rgba(235,164,54,0.8)',
-        backgroundColor: 'rgba(235,164,54,0.5)'
+        backgroundColor: 'rgba(235,164,54,0.6)',
+        data: res.data.analyze.value_per_hour
       })
       this.chart.update()
     }
@@ -296,12 +365,12 @@ export default class DailyTrendWord extends Vue {
         lineTension: 0,
         pointRadius: 8,
         pointHoverRadius: 12,
+        borderColor: 'rgba(54,164,235,0.8)',
+        backgroundColor: 'rgba(54,164,235,0.2)',
         data: res.data.reduce((a, e) => {
           a[parseInt(e.trend_hour.split(' ')[1])] = e.tweet_volume
           return a
-        }, Array(24).fill(null)),
-        borderColor: 'rgba(54,164,235,0.8)',
-        backgroundColor: 'rgba(54,164,235,0.5)'
+        }, Array(24).fill(null))
       })
     }
     this.chart.update()

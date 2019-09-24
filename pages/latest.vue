@@ -22,9 +22,9 @@
             <v-flex xs12 class="mx-8">
               <div class="text-xs-center">
                 <h2 class="headline">
-                  デイリートレンド
+                  最新のトレンド
                 </h2>
-                <span class="subheading"> {{ dateJp }}のトレンド </span>
+                <span class="subheading"> {{ dateJp }}更新 </span>
               </div>
             </v-flex>
             <v-row
@@ -72,35 +72,26 @@
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator'
 import moment from 'moment'
-import axios from 'axios'
-import TopList from '@/components/TopList.vue'
-import { TrendService, ITrends } from '@/service/TrendService'
 import { genMetaParam } from '@/utils/ssr-suport'
+import { ITrends } from '@/service/TrendService'
 import { dailyTrendsModule } from '@/store'
 import { ITable } from '@/store/dailyTrends'
 
 moment.locale('ja')
 
 @Component({
-  components: {
-    TopList
-  },
   head() {
-    const com: DailyTrend = this as DailyTrend
-    const date = com.$route.params.index
-    const dateJp = moment(date).format('YYYY年MM月DD日 (ddd)')
     return {
-      title: ` ${dateJp}のトレンド`,
+      title: ` 最新のトレンド`,
       meta: genMetaParam({
-        url: `https://trendwalker.yhcoder.ml/daily/${date}`,
-        title: `Trendwalker 「${dateJp}のトレンド」`,
-        description: `${dateJp} のトレンドについての情報。`
+        url: `https://trendwalker.yhcoder.ml/latest`,
+        title: `Trendwalker 最新のトレンド`,
+        description: `最新のトレンド情報。`
       })
     }
   }
 })
-export default class DailyTrend extends Vue {
-  service: TrendService = new TrendService(this.$apollo)
+export default class LatestTrend extends Vue {
   trendwords: ITrends = { time: '', trends: [] }
   breadcrumbs: any = [
     {
@@ -122,19 +113,14 @@ export default class DailyTrend extends Vue {
       sortable: false
     }
   ]
+  date: moment.Moment = moment('')
 
   get store() {
     return dailyTrendsModule
   }
 
-  breadcrumbLink(event?: string) {
-    if (event === 'datepicker') {
-      dailyTrendsModule.openDialog(this.$route.params.index)
-    }
-  }
-
   get dateJp() {
-    return moment(this.$route.params.index).format('YYYY年MM月DD日 (ddd)')
+    return this.date.format('YYYY年MM月DD日 (ddd) HH:mm:ss')
   }
 
   trendwordDate(item) {
@@ -142,7 +128,7 @@ export default class DailyTrend extends Vue {
   }
 
   dailyTrendWord(item) {
-    return `/daily/${this.$route.params.index}/${item.trend_word_id}`
+    return `/daily/${this.date.format('YYYY-MM-DD')}/${item.trend_word_id}`
   }
 
   setPage(value) {
@@ -153,21 +139,19 @@ export default class DailyTrend extends Vue {
     dailyTrendsModule.setItemsPerPage(value)
   }
 
-  mounted() {
+  async mounted() {
     const date = this.$route.params.index
     this.breadcrumbs.push({
-      text: 'デイリートレンド',
-      to: this.$route.path,
-      disabled: false,
-      event: 'datepicker'
-    })
-    this.breadcrumbs.push({
-      text: moment(date).format('YYYY年MM月DD日 (ddd)'),
+      text: '最新のトレンド',
       disabled: true,
-      to: `/daily/${date}`
+      to: `/latest`
     })
 
-    dailyTrendsModule.findDate({ date: moment(date), limit: 1000 })
+    const dateText = await dailyTrendsModule.findLatest({
+      apollo: this.$apollo,
+      limit: 1000
+    })
+    this.date = moment(dateText)
   }
 }
 </script>

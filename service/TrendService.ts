@@ -59,14 +59,8 @@ export class TrendService {
     return store
   }
 
-  async updateLatestTrends(): Promise<boolean> {
-    // 15以内
-    const over = false
-    if (moment(this.store.targetTime).isValid() && !over) {
-      return false
-    }
-
-    const trend_time: string = await this.apollo
+  getLatestTime() {
+    return this.apollo
       .query({
         query: getLastTrendTime,
         fetchPolicy: 'network-only'
@@ -77,6 +71,16 @@ export class TrendService {
       .catch((e) => {
         return ''
       })
+  }
+
+  async updateLatestTrends(): Promise<boolean> {
+    // 15以内
+    const over = false
+    if (moment(this.store.targetTime).isValid() && !over) {
+      return false
+    }
+
+    const trend_time = await this.getLatestTime()
 
     const date: moment.Moment = moment(trend_time).second(0)
     const m = Math.floor((date.minutes() + 5) / 15) * 15
@@ -100,7 +104,8 @@ export class TrendService {
 
   async refreshTimeTrends(
     date: moment.Moment,
-    func: (trends: ITrends) => any
+    func: (trends: ITrends) => any,
+    limit: number = 10
   ): Promise<any> {
     return await this.apollo
       .query({
@@ -114,14 +119,13 @@ export class TrendService {
             .clone()
             .add(5, 'm')
             .format('YYYY-MM-DD HH:mm:ss'),
-          limit: 10
+          limit
         }
       })
       .then((res) => {
         let list: ITrend[] = []
         res.data.timeTrend.forEach((e: any) => {
           e.trend_word = e.trendWord.trend_word
-          e.tweet_volume = undefined
           list.push(new Trend(e))
         })
         func({ time: date.format('YYYY-MM-DD HH:mm:ss'), trends: list })
@@ -157,7 +161,10 @@ export class TrendService {
       })
   }
 
-  async getDailyTrends(date: moment.Moment, limit: number = 10): Promise<ITrends> {
+  async getDailyTrends(
+    date: moment.Moment,
+    limit: number = 10
+  ): Promise<ITrends> {
     const res: any = await axios
       .get(
         `${process.env.API_HOST}/api/daily_trends/${date.format(

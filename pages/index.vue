@@ -56,6 +56,7 @@
               <v-row align="start" justify="center" class="grey lighten-5">
                 <TopList
                   title="最新"
+                  to="/latest"
                   :trends="store.current"
                   :fetch="fetch"
                   @plus="moveTime(0, 15)"
@@ -133,7 +134,6 @@ import moment from 'moment'
 import { dailyTrendsModule, trendwordModule } from '@/store'
 import { TrendService } from '@/service/TrendService'
 import TopList from '@/components/TopList.vue'
-import getLastTrendTime from '@/apollo/gql/getLastTrendTime.gql'
 import { genMetaParam } from '@/utils/ssr-suport'
 
 @Component({

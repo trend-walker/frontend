@@ -5,7 +5,7 @@
       <v-spacer></v-spacer>
       <div v-if="!fetch">
         <v-btn
-          :to="`/daily/${date(trends.time)}`"
+          :to="to ? to : `/daily/${date(trends.time)}`"
           color="white"
           text
           rounded
@@ -77,6 +77,7 @@ export default class TodoPreview extends Vue {
   @Prop({ type: String }) title!: String
   @Prop({ type: String }) step!: String
   @Prop({ type: Boolean }) fetch!: Boolean
+  @Prop({ type: String }) to?: String
   loaded: boolean = false
 
   date(trendTime: string): string {

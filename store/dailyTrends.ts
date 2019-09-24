@@ -7,7 +7,8 @@ import {
 } from 'vuex-module-decorators'
 import moment from 'moment'
 import axios from 'axios'
-import { Trend, ITrend } from '@/service/TrendService'
+import { TrendService, Trend, ITrend, ITrends } from '@/service/TrendService'
+import { DollarApollo } from 'vue-apollo/types/vue-apollo'
 
 export interface ITable {
   page: number
@@ -31,11 +32,10 @@ export interface IDailyTrendsStore {
 })
 export default class DailyTrendsStore extends VuexModule
   implements IDailyTrendsStore {
-
   // ダイアログ
   dialog: boolean = false
   dialogDate: string = ''
-  
+
   @MutationAction({ mutate: ['dialog', 'dialogDate'] })
   async openDialog(dateText: string = '') {
     let date = moment(dateText)
@@ -67,8 +67,28 @@ export default class DailyTrendsStore extends VuexModule
   list: Trend[] = []
 
   @Action
-  async findDate(p: { date: moment.Moment; limit: number }) {
-    if (p.date.diff(this.date) === 0) {
+  async findLatest(param: { apollo: DollarApollo<any>; limit: number }) {
+    const ts = new TrendService(param.apollo)
+
+    const trend_time: string = await ts.getLatestTime()
+
+    const date: moment.Moment = moment(trend_time).second(0)
+    const m = Math.floor((date.minutes() + 5) / 15) * 15
+    date.minutes(m)
+
+    ts.refreshTimeTrends(
+      date,
+      async (trends: ITrends) => {
+        this.findDataMutation({ date, list: trends.trends })
+      },
+      param.limit
+    )
+    return trend_time
+  }
+
+  @Action
+  async findDate(param: { date: moment.Moment; limit: number }) {
+    if (param.date.diff(this.date) === 0) {
       this.setLoadState(true)
       return
     }
@@ -76,9 +96,9 @@ export default class DailyTrendsStore extends VuexModule
 
     const res: any = await axios
       .get(
-        `${process.env.API_HOST}/api/daily_trends/${p.date.format(
+        `${process.env.API_HOST}/api/daily_trends/${param.date.format(
           'YYYY-MM-DD'
-        )}?limit=${p.limit}`
+        )}?limit=${param.limit}`
       )
       .catch((e) => {
         console.log(e)
@@ -88,7 +108,7 @@ export default class DailyTrendsStore extends VuexModule
     let list: ITrend[] = []
     res.data.forEach((e: any) => list.push(new Trend(e)))
     // await new Promise((resolve) => setTimeout(resolve, 1))
-    this.findDataMutation({ date: p.date, list })
+    this.findDataMutation({ date: param.date, list })
   }
 
   @Mutation
