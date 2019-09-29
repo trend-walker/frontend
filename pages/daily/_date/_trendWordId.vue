@@ -20,6 +20,7 @@
             >
           </v-col>
         </v-row>
+
         <v-flex xs12 class="mx-8">
           <div class="text-xs-center">
             <h2 class="headline">
@@ -74,6 +75,62 @@
             </v-row>
             <span id="word-cloud-temp"></span>
           </v-col>
+        </v-row>
+
+        <v-flex xs12 class="mx-8">
+          <div class="text-xs-center">
+            <h2 class="headline">
+              関連トレンド
+            </h2>
+            <span class="subheading">
+              {{ dateJp }}の「{{ trendWord }}」関連トレンド
+            </span>
+          </div>
+        </v-flex>
+        <v-row
+          align="start"
+          justify="center"
+          class="grey lighten-5 px-md-12 ma-4"
+        >
+          <v-progress-circular
+            v-if="relatedTrends == null"
+            :size="70"
+            color="primary"
+            indeterminate
+          ></v-progress-circular>
+          <v-btn
+            v-else
+            v-for="item in relatedTrends"
+            :key="item.score"
+            rounded
+            x-small
+            color="primary"
+            class="ma-1"
+            :to="`${item.trend_word_id}`"
+            >{{ item.trend_word }}</v-btn
+          >
+        </v-row>
+        <v-row
+          align="start"
+          justify="space-between"
+          class="grey lighten-5 px-md-12 ma-4"
+        >
+          <v-btn
+            :disabled="dayBefore == null"
+            rounded
+            x-small
+            class="ma-1"
+            :to="`/daily/${dayBefore}/${this.$route.params.trendWordId}`"
+            >前の日</v-btn
+          >
+          <v-btn
+            :disabled="dayAfter == null"
+            rounded
+            x-small
+            class="ma-1"
+            :to="`/daily/${dayAfter}/${this.$route.params.trendWordId}`"
+            >次の日</v-btn
+          >
         </v-row>
 
         <v-flex xs12 class="mx-8">
@@ -245,6 +302,9 @@ export default class DailyTrendWord extends Vue {
   ]
   recomendedTweets: any = []
   chart?: Chart = null
+  relatedTrends: any = null
+  dayBefore: any = null
+  dayAfter: any = null
 
   async mounted() {
     // パンくず
@@ -325,6 +385,8 @@ export default class DailyTrendWord extends Vue {
 
     this.getAnalyze()
 
+    this.getRelatedTrends()
+
     this.createVolumeGraph()
   }
 
@@ -349,6 +411,15 @@ export default class DailyTrendWord extends Vue {
       })
       this.chart.update()
     }
+  }
+
+  async getRelatedTrends() {
+    const res = await axios.get(
+      `${process.env.API_HOST}/api/related_daily_trends/${this.$route.params.date}/${this.$route.params.trendWordId}`
+    )
+    this.relatedTrends = res.data.list
+    this.dayBefore = res.data.day_before
+    this.dayAfter = res.data.day_after
   }
 
   // ツイート数グラフ

@@ -8,15 +8,17 @@
       :show-arrows="false"
     >
       <v-carousel-item>
-        <v-sheet id="title-img" color="blue darken-4" height="100%" tile>
+        <v-sheet id="title-img" height="100%" tile>
           <v-row
             id="title-content"
             class="fill-height"
             align="center"
             justify="center"
           >
-            <h1 class="display-2 font-weight-thin mb-4">Trendwalker</h1>
-            <h4 class="subheading">
+            <h1 class="display-2 font-weight-bold mb-4 pa-2 title-text">
+              Trendwalker
+            </h1>
+            <h4 class="subheading title-text">
               あの日あの時のトレンド
             </h4>
           </v-row>
@@ -97,6 +99,10 @@
 </template>
 
 <style>
+.title-text {
+  color: rgb(255, 255, 255);
+  text-shadow: 3px 3px 8px black;
+}
 #title-img:before {
   content: '';
   background: inherit;
@@ -110,7 +116,11 @@
 }
 #title-img {
   background: url('/title.svg'),
-    radial-gradient(ellipse farthest-side, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.6));
+    radial-gradient(
+      ellipse farthest-side,
+      rgba(243, 242, 238, 0.5),
+      rgb(243, 242, 238)
+    );
   background-repeat: no-repeat;
   background-position: center;
   z-index: 0;
@@ -119,8 +129,8 @@
 #title-content {
   background: radial-gradient(
     ellipse farthest-side,
-    rgba(0, 0, 0, 0.2),
-    rgba(0, 0, 0, 0.6)
+    rgb(243, 242, 238),
+    rgba(243, 242, 238, 0)
   );
 }
 .btn-search {
