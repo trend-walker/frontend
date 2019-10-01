@@ -99,7 +99,6 @@
             indeterminate
           ></v-progress-circular>
           <v-btn
-            v-else
             v-for="item in relatedTrends"
             :key="item.score"
             rounded
@@ -325,10 +324,121 @@ export default class DailyTrendWord extends Vue {
       to: `/trendword/${this.$route.params.trendWordId}`
     })
 
+    // 空チャート作成 DOM操作のため更新サイクル待ち
     await this.$nextTick()
-    const canvas: any = document.getElementById('chart')
-    const context = canvas.getContext('2d')
-    this.chart = new Chart(context, {
+    this.chart = this.createChart('chart')
+
+    this.createVolumeGraph()
+
+    await this.getAnalyze()
+  }
+
+  breadcrumbLink(event?: string) {
+    if (event === 'datepicker') {
+      dailyTrendsModule.openDialog(this.$route.params.date)
+    }
+  }
+
+  // 日本語日付
+  get dateJp() {
+    return moment(this.$route.params.date).format('YYYY年MM月DD日 (ddd)')
+  }
+
+  // トレンド解析
+  async getAnalyze() {
+    const res = await axios.get(
+      `${process.env.API_HOST}/api/analyze_daily_tweets/${this.$route.params.date}/${this.$route.params.trendWordId}`
+    )
+    // await new Promise((resolve) => setTimeout(resolve, 9000))
+    // ワードクラウド
+    this.generateWordCloud(res.data.analyze.word_weights)
+    // 人気ツイート
+    this.createRecomendedTweets(res.data.analyze.id_list)
+
+    // 観測件数チャート
+    if (this.chart) {
+      this.chart.data.datasets.unshift({
+        label: '観測件数',
+        yAxisID: 'id-count',
+        type: 'bar',
+        borderColor: 'rgba(235,164,54,0.8)',
+        backgroundColor: 'rgba(235,164,54,0.6)',
+        data: res.data.analyze.value_per_hour
+      })
+      this.chart.update()
+    }
+
+    // 関連トレンド取得はトレンド解析完了後に実行
+    this.getRelatedTrends()
+  }
+
+  // 関連トレンド取得
+  async getRelatedTrends() {
+    const res = await axios.get(
+      `${process.env.API_HOST}/api/related_daily_trends/${this.$route.params.date}/${this.$route.params.trendWordId}`
+    )
+    this.relatedTrends = res.data.list
+    this.dayBefore = res.data.day_before
+    this.dayAfter = res.data.day_after
+  }
+
+  // ツイート件数チャート
+  async createVolumeGraph() {
+    if (this.chart) {
+      const res = await axios.get(
+        `${process.env.API_HOST}/api/tweet_volume/${this.$route.params.date}/${this.$route.params.trendWordId}`
+      )
+      this.chart.data.datasets.push({
+        label: 'ツイート件数',
+        yAxisID: 'volume',
+        type: 'line',
+        lineTension: 0,
+        pointRadius: 8,
+        pointHoverRadius: 12,
+        borderColor: 'rgba(54,164,235,0.8)',
+        backgroundColor: 'rgba(54,164,235,0.2)',
+        data: res.data.reduce((a, e) => {
+          a[parseInt(e.trend_hour.split(' ')[1])] = e.tweet_volume
+          return a
+        }, Array(24).fill(null))
+      })
+    }
+    this.chart.update()
+  }
+
+  // 人気のツイート
+  async createRecomendedTweets(tweets) {
+    const widgets = ((e) =>
+      e.twttr && e.twttr.widgets ? e.twttr.widgets : undefined)(window as any)
+    if (widgets === undefined) {
+      return
+    }
+
+    this.recomendedTweets = tweets
+      .sort((a, b) => b.favorite + b.retweet - a.favorite - a.retweet)
+      .slice(0, 6)
+    await this.$nextTick()
+
+    this.recomendedTweets.forEach((e, i) => {
+      const p = document.getElementById(e.id_str)
+      const res = widgets
+        .createTweet(e.id_str, p, {
+          exclude_script: true,
+          conversation: 'none',
+          align: 'center',
+          lang: 'ja'
+        })
+        .then((event) => {
+          e.loaded = true
+          this.$set(this.recomendedTweets, i, e)
+        })
+    })
+  }
+
+  // チャート作成
+  createChart(elementId) {
+    const canvas: any = document.getElementById(elementId)
+    const chart = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: {
         labels: Array(24)
@@ -382,110 +492,10 @@ export default class DailyTrendWord extends Vue {
         }
       }
     })
-
-    this.getAnalyze()
-
-    this.getRelatedTrends()
-
-    this.createVolumeGraph()
+    return chart
   }
 
-  async getAnalyze() {
-    const res = await axios.get(
-      `${process.env.API_HOST}/api/analyze_daily_tweets/${this.$route.params.date}/${this.$route.params.trendWordId}`
-    )
-    // await new Promise((resolve) => setTimeout(resolve, 9000))
-    // ワードクラウド
-    this.generateWordCloud(res.data.analyze.word_weights)
-    // 人気ツイート
-    this.createRecomendedTweets(res.data.analyze.id_list)
-    // 観測ツイート件数
-    if (this.chart) {
-      this.chart.data.datasets.unshift({
-        label: '観測件数',
-        yAxisID: 'id-count',
-        type: 'bar',
-        borderColor: 'rgba(235,164,54,0.8)',
-        backgroundColor: 'rgba(235,164,54,0.6)',
-        data: res.data.analyze.value_per_hour
-      })
-      this.chart.update()
-    }
-  }
-
-  async getRelatedTrends() {
-    const res = await axios.get(
-      `${process.env.API_HOST}/api/related_daily_trends/${this.$route.params.date}/${this.$route.params.trendWordId}`
-    )
-    this.relatedTrends = res.data.list
-    this.dayBefore = res.data.day_before
-    this.dayAfter = res.data.day_after
-  }
-
-  // ツイート数グラフ
-  async createVolumeGraph() {
-    if (this.chart) {
-      const res = await axios.get(
-        `${process.env.API_HOST}/api/tweet_volume/${this.$route.params.date}/${this.$route.params.trendWordId}`
-      )
-
-      this.chart.data.datasets.push({
-        label: 'ツイート件数',
-        yAxisID: 'volume',
-        type: 'line',
-        lineTension: 0,
-        pointRadius: 8,
-        pointHoverRadius: 12,
-        borderColor: 'rgba(54,164,235,0.8)',
-        backgroundColor: 'rgba(54,164,235,0.2)',
-        data: res.data.reduce((a, e) => {
-          a[parseInt(e.trend_hour.split(' ')[1])] = e.tweet_volume
-          return a
-        }, Array(24).fill(null))
-      })
-    }
-    this.chart.update()
-  }
-
-  // 人気のツイート
-  async createRecomendedTweets(tweets) {
-    const widgets = ((e) =>
-      e.twttr && e.twttr.widgets ? e.twttr.widgets : undefined)(window as any)
-    if (widgets === undefined) {
-      return
-    }
-
-    this.recomendedTweets = tweets
-      .sort((a, b) => b.favorite + b.retweet - a.favorite - a.retweet)
-      .slice(0, 6)
-    await this.$nextTick()
-
-    this.recomendedTweets.forEach((e, i) => {
-      const p = document.getElementById(e.id_str)
-      const res = widgets
-        .createTweet(e.id_str, p, {
-          exclude_script: true,
-          conversation: 'none',
-          align: 'center',
-          lang: 'ja'
-        })
-        .then((event) => {
-          e.loaded = true
-          this.$set(this.recomendedTweets, i, e)
-        })
-    })
-  }
-
-  breadcrumbLink(event?: string) {
-    if (event === 'datepicker') {
-      dailyTrendsModule.openDialog(this.$route.params.date)
-    }
-  }
-
-  get dateJp() {
-    return moment(this.$route.params.date).format('YYYY年MM月DD日 (ddd)')
-  }
-
+  // ワードクラウド生成
   generateWordCloud(data) {
     data = data.slice(0, 200)
     const rate = 24 / data[0].size
@@ -532,6 +542,7 @@ export default class DailyTrendWord extends Vue {
             return d.text
           })
 
+        // SVGテキストを画像として扱う
         const e = document.querySelector('#word-cloud-temp')
         if (e) {
           const blob = new Blob(
