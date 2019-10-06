@@ -12,6 +12,7 @@
                   "
                   :to="props.item.to"
                   :disabled="props.item.disabled"
+                  @click="breadcrumbLink(props.item.event, props.item.text)"
                 >
                   {{ props.item.text }}
                 </v-breadcrumbs-item>
@@ -30,8 +31,9 @@
               <v-col>
                 <v-card width="100%">
                   <v-data-table
+                    dense
                     :headers="headers"
-                    :items="pagenation.result"
+                    :items="pagination.result"
                     :items-per-page="20"
                     class="elevation-1"
                     :class="{ loaded: loaded }"
@@ -46,17 +48,22 @@
                     </template>
 
                     <template v-slot:item.action="{ item }">
-                      <v-btn :to="dailyTrendWord(item)" rounded color="primary"
+                      <v-btn
+                        :to="dailyTrendWord(item)"
+                        rounded
+                        x-small
+                        color="primary"
+                        class="ma-1 px-8 py-3"
                         >GO
                       </v-btn>
                     </template>
                   </v-data-table>
                   <div class="text-center pt-2">
                     <v-pagination
-                      v-model="pagenation.page"
-                      :length="pagenation.length"
+                      v-model="pagination.page"
+                      :length="pagination.length"
                       :total-visible="7"
-                      @input="search(word, pagenation.page)"
+                      @input="search(word, pagination.page)"
                     ></v-pagination>
                   </div>
                 </v-card>
@@ -76,6 +83,7 @@ import axios from 'axios'
 import * as d3 from 'd3'
 import * as cloud from 'd3-cloud'
 import { genMetaParam } from '@/utils/ssr-suport'
+import { trendwordModule as store } from '@/store'
 
 moment.locale('ja')
 
@@ -136,7 +144,7 @@ export default class TrendWordDateBody extends Vue {
       align: 'center'
     }
   ]
-  pagenation = {
+  pagination = {
     total: 0,
     page: 1,
     length: 0,
@@ -151,6 +159,13 @@ export default class TrendWordDateBody extends Vue {
     return `/daily/${item.trend_time}/${this.$route.params.trendWordId}`
   }
 
+  async breadcrumbLink(event: string, word: string) {
+    if (event === 'trendword-dialog') {
+      await store.setDialog(true)
+      store.setWord(word)
+    }
+  }
+
   mounted() {
     moment.locale('ja')
     this.breadcrumbs.push({
@@ -159,10 +174,9 @@ export default class TrendWordDateBody extends Vue {
     })
     this.breadcrumbs.push({
       text: this.trendWord,
-      disabled: true,
-      to: `/trendword/${this.$route.params.trendWordId}`
+      to: `/trendword/${this.$route.params.trendWordId}`,
+      event: 'trendword-dialog'
     })
-
     this.search()
   }
 
@@ -171,8 +185,8 @@ export default class TrendWordDateBody extends Vue {
     const res: any = await axios.get(
       `${process.env.API_HOST}/api/search_trend_word_date/${this.$route.params.trendWordId}?page=${page}`
     )
-    this.pagenation = res.data
-    this.pagenation.result = res.data.result.reduce((acc, value) => {
+    this.pagination = res.data
+    this.pagination.result = res.data.result.reduce((acc, value) => {
       value.dateJp = moment(value.trend_time).format('YYYY年MM月DD日 (ddd)')
       acc.push(value)
       return acc

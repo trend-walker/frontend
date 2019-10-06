@@ -1,7 +1,7 @@
 <template>
   <v-row justify="center">
     <v-dialog
-      v-model="store.active"
+      v-model="store.dialog"
       max-width="640"
       @click:outside="$emit('trendword-close')"
     >
@@ -48,12 +48,17 @@ export default class TrendwordDialog extends Vue {
     return store
   }
 
-  @Watch('store.active')
-  onChangeStoreDate(value) {
+  @Watch('store.dialog')
+  onChangeStoreDialog(value) {
     if (value) {
       this.$nextTick(this.setFocus)
       this.word = ''
     }
+  }
+
+  @Watch('store.word')
+  onChangeStoreWord(value) {
+    this.word = value
   }
 
   setFocus() {

@@ -179,10 +179,10 @@ export default class TrendsBody extends Vue {
   }
 
   datepicker() {
-    dailyTrendsModule.openDialog()
+    dailyTrendsModule.setDialog({ dialog: true })
   }
   trendword() {
-    trendwordModule.openDialog()
+    trendwordModule.setDialog(true)
   }
 
   async moveTime(day: number = 0, minits: number = 0) {

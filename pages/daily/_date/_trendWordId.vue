@@ -335,7 +335,10 @@ export default class DailyTrendWord extends Vue {
 
   breadcrumbLink(event?: string) {
     if (event === 'datepicker') {
-      dailyTrendsModule.openDialog(this.$route.params.date)
+      dailyTrendsModule.setDialog({
+        dialog: true,
+        dateText: this.$route.params.date
+      })
     }
   }
 
@@ -350,22 +353,26 @@ export default class DailyTrendWord extends Vue {
       `${process.env.API_HOST}/api/analyze_daily_tweets/${this.$route.params.date}/${this.$route.params.trendWordId}`
     )
     // await new Promise((resolve) => setTimeout(resolve, 9000))
-    // ワードクラウド
-    this.generateWordCloud(res.data.analyze.word_weights)
-    // 人気ツイート
-    this.createRecomendedTweets(res.data.analyze.id_list)
+    if (res.data.analyze) {
+      // ワードクラウド
+      this.generateWordCloud(res.data.analyze.word_weights)
+      // 人気ツイート
+      this.createRecomendedTweets(res.data.analyze.id_list)
 
-    // 観測件数チャート
-    if (this.chart) {
-      this.chart.data.datasets.unshift({
-        label: '観測件数',
-        yAxisID: 'id-count',
-        type: 'bar',
-        borderColor: 'rgba(235,164,54,0.8)',
-        backgroundColor: 'rgba(235,164,54,0.6)',
-        data: res.data.analyze.value_per_hour
-      })
-      this.chart.update()
+      // 観測件数チャート
+      if (this.chart) {
+        this.chart.data.datasets.unshift({
+          label: '観測件数',
+          yAxisID: 'id-count',
+          type: 'bar',
+          borderColor: 'rgba(235,164,54,0.8)',
+          backgroundColor: 'rgba(235,164,54,0.6)',
+          data: res.data.analyze.value_per_hour
+        })
+        this.chart.update()
+      }
+    } else {
+      alert('解析データが見つかりませんでした。')
     }
 
     // 関連トレンド取得はトレンド解析完了後に実行

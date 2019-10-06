@@ -37,17 +37,18 @@ export default class DailyTrendsStore extends VuexModule
   dialogDate: string = ''
 
   @MutationAction({ mutate: ['dialog', 'dialogDate'] })
-  async openDialog(dateText: string = '') {
+  async setDialog({
+    dialog,
+    dateText = '',
+  }: {
+    dialog: boolean
+    dateText?: string
+  }) {
     let date = moment(dateText)
     if (!date.isValid()) {
       date = moment()
     }
-    return { dialog: true, dialogDate: date.format('YYYY-MM-DD') }
-  }
-
-  @MutationAction({ mutate: ['dialog'] })
-  async closeDialog() {
-    return { dialog: false }
+    return { dialog, dialogDate: date.format('YYYY-MM-DD') }
   }
 
   @MutationAction({ mutate: ['dialogDate'] })

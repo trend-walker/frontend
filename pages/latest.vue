@@ -35,6 +35,7 @@
               <v-col>
                 <v-card width="100%">
                   <v-data-table
+                    dense
                     :headers="headers"
                     :items="store.list"
                     :items-per-page="store.table.itemPerPage"
@@ -54,7 +55,12 @@
                     </template>
 
                     <template v-slot:item.action="{ item }">
-                      <v-btn :to="dailyTrendWord(item)" rounded color="primary"
+                      <v-btn
+                        :to="dailyTrendWord(item)"
+                        rounded
+                        x-small
+                        color="primary"
+                        class="ma-1 px-8 py-3"
                         >GO
                       </v-btn>
                     </template>

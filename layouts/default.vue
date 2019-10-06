@@ -119,24 +119,24 @@ export default class Top extends Vue {
   menuEvent(eventName) {
     this.primaryDrawer.model = false
     if (eventName === 'datepicker') {
-      dailyTrendsModule.openDialog()
+      dailyTrendsModule.setDialog({ dialog: true })
     }
     if (eventName === 'trendword') {
-      trendwordModule.openDialog()
+      trendwordModule.setDialog(true)
     }
   }
   moveDate(date) {
     this.$router.push(`/daily/${date}`)
-    dailyTrendsModule.closeDialog()
+    dailyTrendsModule.setDialog({ dialog: false })
   }
   searchWord(data: { word: string }) {
-    trendwordModule.setWord(data.word)
-    trendwordModule.closeDialog()
+    trendwordModule.search({ word: data.word })
+    trendwordModule.setDialog(false)
     this.$router.push(`/trendword`)
   }
   closeDialog() {
-    dailyTrendsModule.closeDialog()
-    trendwordModule.closeDialog()
+    dailyTrendsModule.setDialog({ dialog: false })
+    trendwordModule.setDialog(false)
   }
 }
 </script>

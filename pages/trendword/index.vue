@@ -42,18 +42,19 @@
                       label="キーワード・ハッシュタグ"
                       single-line
                       hide-details
-                      @keydown.enter="search(word)"
+                      @keydown.enter="store.search({ word })"
                       @compositionstart="composing = true"
                       @compositionend="composing = false"
                     ></v-text-field>
                   </v-card-title>
                   <v-data-table
+                    dense
                     :headers="headers"
-                    :items="pagenation.result"
+                    :items="store.pagination.result"
                     :items-per-page="20"
                     class="elevation-1"
-                    :class="{ loaded: loaded }"
-                    :loading="!loaded"
+                    :class="{ loaded: store.loaded }"
+                    :loading="!store.loaded"
                     loading-text="読み込み中..."
                     no-data-text="データが見つかりませんでした。"
                     hide-default-footer
@@ -71,17 +72,22 @@
                     </template>
 
                     <template v-slot:item.action="{ item }">
-                      <v-btn :to="dailyTrendWord(item)" rounded color="primary"
+                      <v-btn
+                        :to="dailyTrendWord(item)"
+                        rounded
+                        x-small
+                        color="primary"
+                        class="ma-1 px-8 py-3"
                         >GO
                       </v-btn>
                     </template>
                   </v-data-table>
                   <div class="text-center pt-2">
                     <v-pagination
-                      v-model="pagenation.page"
-                      :length="pagenation.length"
+                      v-model="page"
+                      :length="store.pagination.length"
                       :total-visible="7"
-                      @input="search(word, pagenation.page)"
+                      @input="store.search({ word, page })"
                     ></v-pagination>
                   </div>
                 </v-card>
@@ -111,12 +117,8 @@
 
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator'
-import moment from 'moment'
-import axios from 'axios'
 import { trendwordModule as store } from '@/store'
 import { genMetaParam } from '@/utils/ssr-suport'
-
-moment.locale('ja')
 
 @Component({
   head() {
@@ -135,7 +137,6 @@ moment.locale('ja')
 export default class TrendWordBody extends Vue {
   word: string = ''
   composing: boolean = false
-  loaded: boolean = true
   breadcrumbs: any = [
     {
       text: 'トップ',
@@ -158,11 +159,17 @@ export default class TrendWordBody extends Vue {
       sortable: false
     }
   ]
-  pagenation = {
-    total: 0,
-    page: 1,
-    length: 0,
-    result: []
+
+  get store() {
+    return store
+  }
+
+  get page() {
+    return store.pagination.page
+  }
+
+  set page(page) {
+    store.setPage(page)
   }
 
   mounted() {
@@ -171,23 +178,20 @@ export default class TrendWordBody extends Vue {
       disabled: true,
       to: this.$route.path
     })
-
-    this.search(store.word)
-  }
-
-  get store() {
-    return store
+    this.word = store.word
+    if (store.pagination.result.length === 0) {
+      store.search({ word: this.word })
+    }
   }
 
   @Watch('store.word')
-  onchangeWord(value) {
-    this.word = value
-    this.search(value)
+  onChangeWord(value) {
+    this.word = store.word
   }
 
   breadcrumbLink(event?: string) {
     if (event === 'trendword') {
-      store.openDialog()
+      store.setDialog(true)
     }
   }
 
@@ -201,29 +205,6 @@ export default class TrendWordBody extends Vue {
 
   trendwordDate(item) {
     return `/trendword/${item.trend_word_id}`
-  }
-
-  async search(word: string, page: number = 1) {
-    this.loaded = false
-    const res: any = await axios.get(
-      `${process.env.API_HOST}/api/search_trend_word?word=${encodeURIComponent(
-        word
-      )}&page=${page}`
-    )
-    res.data.length = Math.ceil(res.data.total / res.data.max_per_page)
-    res.data.result = res.data.result.reduce((acc, value) => {
-      value.latest_trend_time = moment(value.latest_trend_time).format(
-        'YYYY-MM-DD'
-      )
-      value.dateJp = moment(value.latest_trend_time).format(
-        'YYYY年MM月DD日 (ddd)'
-      )
-      acc.push(value)
-      return acc
-    }, [])
-    this.pagenation = res.data
-
-    this.loaded = true
   }
 }
 </script>
