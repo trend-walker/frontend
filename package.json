@@ -23,7 +23,7 @@
     "d3.layout.cloud": "^1.2.0",
     "graphql-tag": "^2.10.1",
     "moment": "^2.24.0",
-    "nuxt": "^2.0.0",
+    "nuxt": "^3.4.3",
     "ts-node": "^8.3.0",
     "vue-property-decorator": "^8.2.1"
   },
